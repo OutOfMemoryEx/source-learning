@@ -1,10 +1,11 @@
 package com.huangkailong.learning.source.jdk;
 
 import cn.hutool.core.util.StrUtil;
+import org.junit.jupiter.api.Test;
+
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.Test;
 
 /**
  * @author huangkl
@@ -24,8 +25,9 @@ public class ThreadLocalTests {
     void test0() {
         ThreadLocal<String> threadLocal = new ThreadLocal<>();
         threadLocal.set("abc");
-        String s = threadLocal.get();
-        System.out.println(s);
+        System.out.println(threadLocal.get());
+        threadLocal.remove();
+        System.out.println(threadLocal.get());
     }
 
 
