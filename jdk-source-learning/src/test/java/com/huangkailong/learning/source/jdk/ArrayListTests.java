@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
  */
 public class ArrayListTests {
     @Test
-    void test0() {
+    void add_and_foreach() {
         List<String> list = new ArrayList<>();
         list.add("a");
         list.add("b");

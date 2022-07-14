@@ -22,7 +22,7 @@ public class ThreadLocalTests {
     }
 
     @Test
-    void test0() {
+    void set_get_remove() {
         ThreadLocal<String> threadLocal = new ThreadLocal<>();
         threadLocal.set("abc");
         System.out.println(threadLocal.get());
@@ -32,7 +32,7 @@ public class ThreadLocalTests {
 
 
     @Test
-    void test1() {
+    void cal_thread_local_hash_increment() {
         // 黄金分割点：(√5 - 1) / 2 = 0.6180339887     1.618:1 == 1:0.618
         String x = new DecimalFormat("0.0000000000").format((Math.sqrt(5) - 1) / 2);
         System.out.println(x);
@@ -45,7 +45,7 @@ public class ThreadLocalTests {
      *
      */
     @Test
-    void test2() {
+    void cal_thread_local_hash_code() {
         for (int i = 0; i < 20; i++) {
             /**
              * hashCode = h(i) = h(i-1) + HASH_INCREMENT
