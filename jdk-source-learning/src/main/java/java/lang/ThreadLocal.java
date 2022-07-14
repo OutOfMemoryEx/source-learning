@@ -199,6 +199,7 @@ public class ThreadLocal<T> {
      */
     public void set(T value) {
         Thread t = Thread.currentThread();
+        // 从线程 t 获取 ThreadLocalMap 对象
         ThreadLocalMap map = getMap(t);
         if (map != null)
             map.set(this, value);
