@@ -199,12 +199,12 @@ public class ThreadLocal<T> {
      */
     public void set(T value) {
         Thread t = Thread.currentThread();
-        // 从线程 t 获取 ThreadLocalMap 对象
+        // 获取 Thread#threadLocals 变量
         ThreadLocalMap map = getMap(t);
         if (map != null)
             map.set(this, value);
         else
-            createMap(t, value);
+            createMap(t, value); // 初始化 Thread#threadLocals 变量并添加 value 到 ThreadLocalMap 中
     }
 
     /**
@@ -319,6 +319,8 @@ public class ThreadLocal<T> {
 
         /**
          * The initial capacity -- MUST be a power of two.
+         * <br/>
+         * 初始化容量，为 2 的 N 次方
          */
         private static final int INITIAL_CAPACITY = 16;
 
@@ -478,7 +480,7 @@ public class ThreadLocal<T> {
 
 
                 if (k == null) {
-                    // key 被回收了，进行探测式数据清理
+                    // key 被回收了，进行数据清理
                     replaceStaleEntry(key, value, i);
                     return;
                 }
@@ -559,15 +561,14 @@ public class ThreadLocal<T> {
                     // 找到相等的 key
                     e.value = value;
 
-                    // staleSlot 下标 与 i 小标的数据互换
+                    // staleSlot 下标与 i 下标的数据互换
                     // staleSlot 下标的数据的 key 已被 gc 回收
                     tab[i] = tab[staleSlot];
                     tab[staleSlot] = e;
 
-                    // 向前遍历时，没有找到 key 被回收的数据
                     // Start expunge at preceding stale entry if it exists
                     if (slotToExpunge == staleSlot)
-                        slotToExpunge = i;
+                        slotToExpunge = i; // 向前遍历时，没有找到 key 被回收的数据，因为 staleSlot 下标与 i 下标的数据互换了，所以 i 下标的数据的 key 已被 gc 回收
                     cleanSomeSlots(expungeStaleEntry(slotToExpunge), len);
                     return;
                 }
@@ -593,13 +594,18 @@ public class ThreadLocal<T> {
         }
 
         /**
+         * 探测式清理，从 staleSlot 开始，一直往后探测：
+         * 1.遇到 key == null 的数据，清理
+         * 2.遇到 key != null 的数据，重新计算下标
+         * 3.遇到数据为 null，结束
+         *
          * Expunge a stale entry by rehashing any possibly colliding entries
          * lying between staleSlot and the next null slot.  This also expunges
          * any other stale entries encountered before the trailing null.  See
          * Knuth, Section 6.4
          *
-         * @param staleSlot index of slot known to have null key
-         * @return the index of the next null slot after staleSlot
+         * @param staleSlot index of slot known to have null key(key 被 gc 回收的数组下标)
+         * @return the index of the next null slot after staleSlot(staleSlot 之后为数据为null的数组下标)
          * (all between staleSlot and this slot will have been checked
          * for expunging).
          */
@@ -700,6 +706,9 @@ public class ThreadLocal<T> {
 
         /**
          * Double the capacity of the table.
+         * 扩容，新数组容量是原来容量的 2 倍。扩容时：
+         * 1. key == null, 设置其 value 也为 null，防止内存泄漏
+         * 2. key != null，重新计算数组下标
          */
         private void resize() {
             Entry[] oldTab = table;
@@ -731,6 +740,7 @@ public class ThreadLocal<T> {
 
         /**
          * Expunge all stale entries in the table.
+         * 删除数组中所有 key 被 gc 回收的数据
          */
         private void expungeStaleEntries() {
             Entry[] tab = table;
