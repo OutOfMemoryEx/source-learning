@@ -87,4 +87,69 @@ public class ThreadTests {
             }
         }
     }
+
+    @Test
+    void thread_interrupted () throws InterruptedException {
+
+        Thread sleepThread = new Thread(() -> {
+            try {
+                while (true){
+                    Thread.sleep(1000);
+                }
+            } catch (InterruptedException e) {
+               e.printStackTrace();
+            }
+        });
+        sleepThread.start();
+        Thread busyThread = new Thread(() -> {
+            for (; ; ) {
+            }
+        });
+        busyThread.start();
+        TimeUnit.SECONDS.sleep(2);
+
+        sleepThread.interrupt();
+        busyThread.interrupt();
+        TimeUnit.SECONDS.sleep(1);
+
+        System.out.println("sleep thread interrupt flag is " + sleepThread.isInterrupted());
+        System.out.println("busy thread interrupt flag is " + busyThread.isInterrupted());
+    }
+
+    @Test
+    void stop_thread_safe () throws InterruptedException {
+        MyRunnable myRunnable = new MyRunnable();
+        Thread firstThread = new Thread(myRunnable);
+        firstThread.start();
+        Thread secondThread = new Thread(new MyRunnable());
+        secondThread.start();
+
+        myRunnable.cancel();
+        secondThread.interrupt();
+
+        firstThread.join();
+        secondThread.join();
+    }
+
+    static class MyRunnable implements Runnable {
+        private volatile boolean on = true;
+
+        public MyRunnable(boolean on) {
+            this.on = on;
+        }
+
+        public MyRunnable() {
+        }
+
+        @Override
+        public void run() {
+            while (on && !Thread.currentThread().isInterrupted()){
+                // do something
+            }
+        }
+
+        public void cancel () {
+            on = false;
+        }
+    }
 }
