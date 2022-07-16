@@ -1,13 +1,15 @@
 package com.huangkailong.learning.source.jdk;
 
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author huangkl
@@ -18,7 +20,7 @@ public class ThreadTests {
     @Test
     void create_and_run() throws ExecutionException, InterruptedException {
         // 第一种方式
-        Thread thread0 = new Thread(){
+        Thread thread0 = new Thread() {
             @Override
             public void run() {
                 System.out.println(getName());
@@ -34,10 +36,10 @@ public class ThreadTests {
 
 
         // 第三种方式
-        FutureTask<Integer> futureTask = new FutureTask<>(() -> 1+1);
+        FutureTask<Integer> futureTask = new FutureTask<>(() -> 1 + 1);
         Thread thread2 = new Thread(futureTask);
         thread2.start();
-        System.out.println("线程返回结果为："+futureTask.get());
+        System.out.println("线程返回结果为：" + futureTask.get());
     }
 
 
@@ -52,7 +54,7 @@ public class ThreadTests {
             Job job = new Job(threadPriority);
             jobs.add(job);
             Thread thread = new Thread(job);
-            thread.setName("thread-"+i);
+            thread.setName("thread-" + i);
             thread.setPriority(threadPriority);
             thread.start();
         }
@@ -63,7 +65,9 @@ public class ThreadTests {
         TimeUnit.SECONDS.sleep(1);
 
         for (Job job : jobs) {
-            System.out.println(StrUtil.format("thread priority is {}, job count is {}", job.priority, job.jobCount));
+            System.out.println(
+                StrUtil.format("thread priority is {}, job count is {}", job.priority,
+                    job.jobCount));
         }
     }
 
@@ -82,22 +86,22 @@ public class ThreadTests {
                 Thread.yield();
             }
 
-            while (notEnd){
+            while (notEnd) {
                 jobCount++;
             }
         }
     }
 
     @Test
-    void thread_interrupted () throws InterruptedException {
+    void thread_interrupted() throws InterruptedException {
 
         Thread sleepThread = new Thread(() -> {
             try {
-                while (true){
+                while (true) {
                     Thread.sleep(1000);
                 }
             } catch (InterruptedException e) {
-               e.printStackTrace();
+                e.printStackTrace();
             }
         });
         sleepThread.start();
@@ -117,7 +121,7 @@ public class ThreadTests {
     }
 
     @Test
-    void stop_thread_safe () throws InterruptedException {
+    void stop_thread_safe() throws InterruptedException {
         MyRunnable myRunnable = new MyRunnable();
         Thread firstThread = new Thread(myRunnable);
         firstThread.start();
@@ -143,13 +147,113 @@ public class ThreadTests {
 
         @Override
         public void run() {
-            while (on && !Thread.currentThread().isInterrupted()){
+            while (on && !Thread.currentThread().isInterrupted()) {
                 // do something
             }
         }
 
-        public void cancel () {
+        public void cancel() {
             on = false;
+        }
+    }
+
+    @Test
+    void run_in_order_use_thread_join_method() throws InterruptedException {
+        Thread preThread = null;
+        for (int i = 0; i < 10; i++) {
+            Thread thread = new Thread(new OrderRunnable(preThread, i));
+            preThread = thread;
+            thread.setName("Thread-"+i);
+            thread.start();
+        }
+        TimeUnit.SECONDS.sleep(2);
+    }
+
+
+    static class OrderRunnable implements Runnable {
+        Thread preThread;
+        int order;
+
+        public OrderRunnable(Thread preThread, int order) {
+            this.preThread = preThread;
+            this.order = order;
+        }
+
+        @Override
+        public void run() {
+            if (Objects.nonNull(preThread)) {
+                try {
+                    preThread.join();
+                } catch (InterruptedException ignored) {
+
+                }
+            }
+            System.out.println(
+                StrUtil.format("当前线程名称为 {}, 序号为 {}", Thread.currentThread().getName(), order));
+        }
+    }
+
+
+    private static volatile boolean waitNotifyFlag = true;
+    private static final Object waitNotifyLock = new Object();
+
+    @Test
+    void wait_notify () throws InterruptedException {
+        Thread waitThread = new Thread(new WaitThread(), "wait thread");
+        waitThread.start();
+        TimeUnit.SECONDS.sleep(1);
+
+        Thread notifyThread = new Thread(new NotifyThread(), "notify thread");
+        notifyThread.start();
+
+        TimeUnit.SECONDS.sleep(10);
+    }
+
+
+    static class WaitThread implements Runnable {
+        @Override
+        public void run() {
+            synchronized (waitNotifyLock) {
+                while (waitNotifyFlag) {
+                    System.out.println(StrUtil.format("{} flag is true, current date time is {}",
+                        Thread.currentThread().getName(), DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss")));
+                    try {
+                        waitNotifyLock.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            System.out.println(StrUtil.format("{} flag is false, current date time is {}",
+                Thread.currentThread().getName(), DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss")));
+        }
+    }
+
+    static class NotifyThread implements Runnable {
+        @Override
+        public void run() {
+            synchronized (waitNotifyLock) {
+                System.out.println(StrUtil.format("{} hold lock, notify all, current date time is {}",
+                    Thread.currentThread().getName(), DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss")));
+                waitNotifyLock.notifyAll();
+                waitNotifyFlag = false;
+                try {
+                    TimeUnit.SECONDS.sleep(2);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            synchronized (waitNotifyLock) {
+                System.out.println(StrUtil.format("{} hold lock again, notify all, current date time is {}",
+                    Thread.currentThread().getName(), DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss")));
+                waitNotifyLock.notifyAll();
+                try {
+                    TimeUnit.SECONDS.sleep(2);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
